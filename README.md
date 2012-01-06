@@ -1,3 +1,15 @@
+# Preface
+
+This version of ndoc is extraordinarily modified (hacked? nah...). While you could run this through the command line, we don't, and prefer to use the ndoc as a backbone/submodule for a larger build process.
+
+The changes here go beyond skins modified in the Jade templates. Core modifications include:
+
+* Creating a separate page for every class, including support for "`[[ ]]`"-notation linking
+* Adding "ellipsis" descriptions, truncating the full doc into 120 characters.
+* Linkifying everything (object types in arguments, return types, e.t.c.)
+
+Most other modifications were made in the Jade skin(s).
+
 # NDoc - JavaScript documentation generator
 [![Build Status](https://secure.travis-ci.org/nodeca/ndoc.png)](http://travis-ci.org/nodeca/ndoc)
 

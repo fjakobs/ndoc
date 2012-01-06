@@ -156,20 +156,36 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
   files.push(filename);
   cb();
 }, function (err) {
-  var ndoc, output;
+  var ndoc, ndocArray = [], output;
   if (err) {
     console.error(err.message || err);
     process.exit(1);
   }
-  // build tree
-  ndoc = new NDoc(files, {
-    // given package URL, file name and line in the file, format link to source file.
-    // do so only if `packageUrl` is set or `linkFormat` is set
-    formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
-      //return Util.normalize(interpolate(opts.linkFormat, file, line));
-      return interpolate(opts.linkFormat, file, line);
-    }
-  });
+
+// build trees
+  if (opts.format == 'html')
+    for (var f = 0; f < files.length; f++) { 
+    var f_a = new Array(1);
+    f_a[0] = files[f];
+    ndocArray.push(new NDoc(f_a, {
+      // given package URL, file name and line in the file, format link to source file.
+      // do so only if `packageUrl` is set or `linkFormat` is set
+      formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
+        //return Util.normalize(interpolate(opts.linkFormat, file, line));
+        return interpolate(opts.linkFormat, file, line);
+      }
+    }))
+    };
+    else {
+    ndoc = new NDoc(files, {
+      // given package URL, file name and line in the file, format link to source file.
+      // do so only if `packageUrl` is set or `linkFormat` is set
+      formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
+        //return Util.normalize(interpolate(opts.linkFormat, file, line));
+        return interpolate(opts.linkFormat, file, line);
+      }
+    });
+ }
   //console.log(ndoc.toJSON());
 
   // output tree
@@ -190,8 +206,15 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
         console.error(err.message || err);
         process.exit(1);
       }
-      var html = ndoc.toHTML(opts);
-      Util.write(Util.join(output, 'index.html'), html);
+
+      ndocArray.forEach(function (n) {
+        var jsonString = JSON.stringify(n.list);
+        var idPos = jsonString.indexOf("id") + 5;
+        var fileName = jsonString.substring(idPos, jsonString.indexOf('"', idPos));
+        
+        var html = n.toHTML(opts);
+        Util.write(Util.join(output, fileName + '.html'), html);
+      });
     });
     break;
 

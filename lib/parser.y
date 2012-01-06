@@ -111,6 +111,15 @@ world
     x.description = desq.trim();
     // short description lasts until the first empty line
     x.short_description = x.description.replace(/\n\n[\s\S]*$/, '\n');
+    
+    x.ellipsis_description = x.short_description;
+    if (x.ellipsis_description.length > 120)
+    {
+      x.ellipsis_description = x.ellipsis_description.substring(0, 120 - 4) + "..."
+    }
+    else
+      x.ellipsis_description = x.ellipsis_description + " ..."
+
     x.line = ($5.line + 1);
     // register
     if ($$[x.id]) {
@@ -301,7 +310,6 @@ section
 
   : '==' name '==' { $$ = {id: $2, type: 'section'}; }
   ;
-
 
 namespace
 
