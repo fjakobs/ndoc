@@ -7,6 +7,7 @@ The changes here go beyond skins modified in the Jade templates. Core modificati
 * Creating a separate page for every class, including support for "`[[ ]]`"-notation linking
 * Adding "ellipsis" descriptions, truncating the full doc into 120 characters.
 * Linkifying everything (object types in arguments, return types, e.t.c.)
+* Allowing the same dirname for output to exist
 
 Most other modifications were made in the Jade skin(s).
 
