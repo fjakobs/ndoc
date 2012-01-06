@@ -1,6 +1,8 @@
 # Preface
 
-This version of ndoc is extraordinarily modified (hacked? nah...). While you could run this through the command line, we don't, and prefer to use the ndoc as a backbone/submodule for a larger build process.
+[ndoc](https://github.com/nodeca/ndoc) is a totally awesome Javascript documentation tool written in Node.js, based on [pdoc](https://github.com/tobie/pdoc). [This blog post](http://andrewdupont.net/2008/11/16/pdoc-inline-documentation-for-prototype/) identifies some of the advantages over other Javascript documentation ystems.
+
+This fork of ndoc is extraordinarily modified (hacked? nah...). While you could run this through the command line, we don't, and prefer to `exec` ndoc as a backbone/submodule for a larger build process.
 
 The changes here go beyond skins modified in the Jade templates. Core modifications include:
 
@@ -9,7 +11,7 @@ The changes here go beyond skins modified in the Jade templates. Core modificati
 * Linkifying everything (object types in arguments, return types, e.t.c.)
 * Allowing the same dirname for output to exist
 
-Most other modifications were made in the Jade skin(s).
+Below is the original ndoc readme.
 
 # NDoc - JavaScript documentation generator
 [![Build Status](https://secure.travis-ci.org/nodeca/ndoc.png)](http://travis-ci.org/nodeca/ndoc)
