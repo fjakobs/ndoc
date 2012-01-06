@@ -20,7 +20,6 @@ mixin argument(arg, reqOptObj)
          - if (argInfo !== undefined && arg.name === argInfo.name && argInfo.optional)
             span.optionalArg X
             -argInfo.found = "true"
-            -console.log(reqOptObj)
             break
   td
     mixin markdown(arg.description)
