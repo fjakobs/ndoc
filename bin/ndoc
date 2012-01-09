@@ -4,6 +4,7 @@
 var exec = require('child_process').exec;
 var Util = require('../lib/util');
 var NDoc = require('../lib');
+var fs = require('fs')
 
 //
 // parse options
@@ -204,13 +205,19 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
   case 'html':
     copyDirSync(Util.join(opts.skin, 'skeleton'), output + "/resources");
 
+      var parentDir;
       ndocArray.forEach(function (n) {
         var jsonString = JSON.stringify(n.list);
         var idPos = jsonString.indexOf("id") + 5;
+        var parentDirPos = jsonString.indexOf("parentDir") + 12;
+
         var fileName = jsonString.substring(idPos, jsonString.indexOf('"', idPos));
-        
+        var parentDir =  jsonString.substring(parentDirPos, jsonString.indexOf('"', parentDirPos));
+
         var html = n.toHTML(opts);
-        Util.write(Util.join(output, fileName + '.html'), html);
+
+        makeDirIfNeeded("out/" + parentDir);
+        Util.write(Util.join(output, parentDir + "/" + fileName + '.html'), html);
       });
     break;
 
@@ -225,10 +232,9 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
 // https://github.com/ryanmcgrath/wrench-js/blob/master/lib/wrench.js#L53
 function copyDirSync(sourceDir, newDirLocation)
 {
-  var fs = require('fs'), checkDir = fs.statSync(sourceDir);
+  var checkDir = fs.statSync(sourceDir);
 
-  if(!fs.statSync(newDirLocation).isDirectory()) // make newDirLocation if doesn't exist
-    fs.mkdirSync(newDirLocation, checkDir.mode);
+  makeDirIfNeeded(newDirLocation, checkDir.mode); // make newDirLocation if doesn't exist
 
     var files = fs.readdirSync(sourceDir);
 
@@ -239,12 +245,7 @@ function copyDirSync(sourceDir, newDirLocation)
             /*  Create a new directory in our copied version... */
             var newDir = newDirLocation + "/" + files[i];
 
-            try {
-              if (!fs.statSync(newDir).isDirectory())
-                fs.mkdirSync(newDir, currFile.mode);
-              } catch (e) {
-                fs.mkdirSync(newDir, currFile.mode);
-              }
+            makeDirIfNeeded(newDir, currFile.mode);
 
             /*  ...and then recursion this thing right on back. */
             copyDirSync(sourceDir + "/" + files[i], newDir);
@@ -256,5 +257,18 @@ function copyDirSync(sourceDir, newDirLocation)
             var contents = fs.readFileSync(sourceDir + "/" + files[i]);
             fs.writeFileSync(newDirLocation + "/" + files[i], contents);
       }
+    }
+}
+
+function makeDirIfNeeded(newDir, mode)
+{
+    if (newDir !== undefined)
+    {
+      try {
+        if (!fs.statSync(newDir).isDirectory())
+          fs.mkdirSync(newDir, mode);
+      } catch (e) {
+          fs.mkdirSync(newDir, mode);
+      }      
     }
 }
