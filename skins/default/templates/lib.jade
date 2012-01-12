@@ -1,3 +1,5 @@
+- var globalJSObjs = ["Array", "Boolean", "Date", "Error", "EvalError", "RangeError", "ReferenceError", "SyntaxError", "TypeError", "URIError", "Function", "Infinity", "JSON", "Math", "NaN", "Number", "Object", "RegExp", "String"]
+
 mixin search()
   form#search
     input(type='search', size='20', title='Search', placeholder='Search')
@@ -195,19 +197,22 @@ mixin article(obj, parents)
               for sig in obj.signatures
                 li.signature
                   ul
-                    li.signature-call
-                      = signature(obj, sig)
+                    li.signature-call!= validate_link(signature(obj, sig))
                     if sig.returns
                       li.signature-returns
                         ul.argument-types
                           for ret in sig.returns
+                            non_link = obj.type == 'constant' || ret.type == 'Void' || ret.type == 'null'
                             //- N.B: type can be array. E.g. [ Element... ]
                             //- N.B: type can be array. E.g. [ Element1, Element2 ]
                             text = ''
                             if (typeof ret.type !== 'string')
                               - text = ret.type.map(function(r){ return link(r || '?', true, ['link-short']);}).join(', ');
                             else
-                              text = link(ret.type || '?', true, ['link-short'])
+                              if non_link
+                                text = ret.type
+                              else
+                                text = link(ret.type || '?', true, ['link-short'])
                             if ret.ellipsis
                               text = text + '...'
                             if ret.array
@@ -311,3 +316,10 @@ mixin links(collection)
     for obj in collection
       li
         mixin link(obj)
+
+-function validate_link(l) // turn the js-doc links to point to js-doc. this is lousy code.
+  for js_obj in globalJSObjs
+    -var regex = new RegExp('<a href="' + js_obj + '.html">' + js_obj + '</a>', "ig")
+    -if (l.match(regex))
+      -l = l.replace(regex, js_obj)
+  != l

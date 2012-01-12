@@ -202,8 +202,7 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
     Util.write(output, 'var ndoc = ' + ndoc.toJSON(opts) + ';');
     break;
 
-  case 'html':
-    copyDirSync(Util.join(opts.skin, 'skeleton'), output + "/resources");
+    case 'html':
 
       var parentDir;
       ndocArray.forEach(function (n) {
@@ -222,7 +221,10 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
           fileName = fileName.replace(scoreToDot, ".");
         }
 
-        makeDirIfNeeded("out/" + parentDir);
+        makeDirIfNeeded(output + "/" + parentDir);
+
+        copyDirSync(Util.join(opts.skin, 'skeleton'), output + "/" + parentDir);
+
         Util.write(Util.join(output, parentDir + "/" + fileName.toLowerCase() + '.html'), html);
       });
     break;
@@ -242,7 +244,7 @@ function copyDirSync(sourceDir, newDirLocation)
 
   makeDirIfNeeded(newDirLocation, checkDir.mode); // make newDirLocation if doesn't exist
 
-    var files = fs.readdirSync(sourceDir);
+  var files = fs.readdirSync(sourceDir);
 
   for(var i = 0; i < files.length; i++) {
     var currFile = fs.statSync(sourceDir + "/" + files[i]);
@@ -250,7 +252,6 @@ function copyDirSync(sourceDir, newDirLocation)
         if(currFile.isDirectory()) {
             /*  Create a new directory in our copied version... */
             var newDir = newDirLocation + "/" + files[i];
-
             makeDirIfNeeded(newDir, currFile.mode);
 
             /*  ...and then recursion this thing right on back. */
@@ -274,7 +275,27 @@ function makeDirIfNeeded(newDir, mode)
         if (!fs.statSync(newDir).isDirectory())
           fs.mkdirSync(newDir, mode);
       } catch (e) {
-          fs.mkdirSync(newDir, mode);
-      }      
+
+          if (newDir.indexOf("/") >=0)
+          {
+            var newDirs = newDir.split("/");
+            var dirPath = "";
+
+            for (var d = 0; d < newDirs.length; d++)
+            {
+              try {
+                  if (d == 0)
+                  {
+                    fs.mkdirSync(newDirs[d]);
+                  }
+                  else
+                  { 
+                    dirPath += newDirs[d-1] + "/"; 
+                    fs.mkdirSync(dirPath + newDirs[d], mode);
+                  }
+             } catch (e) { if (e.code != "EEXIST") console.error(e);} // usually thrown if a dirr already exists; ignore those
+            }
+          }
+       }      
     }
 }
