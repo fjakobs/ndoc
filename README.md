@@ -11,6 +11,16 @@ The changes here go beyond skins modified in the Jade templates. Core modificati
 * Linkifying everything (object types in arguments, return types, e.t.c.)
 * Allowing the same dirname for output to exist
 
+## Changes
+
+One new caveat is that your source files **must** be two folders deep; for example, `./src/myDocs`. This was made to support splitting objects into individual files, and given each of those objects a parent directory. 
+
+For example, you could have `./src/myDocs1/` and `./src/myDocs2/`; all the objects in these files will output to `./out/myDocs1` and `./myDocs2`, respectfully. Subfolders within the parent directory are flattened; e.g. files in `./src/myDocs1/foo` still appear in `./out/myDocs1`.
+
+Furthermore, resources like CSS and Javascript in the _./skins_ now have their own folder called "resources," to differentiate them from the content.
+
+<hr />
+
 Below is the original ndoc readme.
 
 # NDoc - JavaScript documentation generator
