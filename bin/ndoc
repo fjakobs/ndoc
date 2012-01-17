@@ -203,15 +203,17 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
     break;
 
     case 'html':
-
-      var parentDir;
       ndocArray.forEach(function (n) {
         var jsonString = JSON.stringify(n.list);
         var idPos = jsonString.indexOf("id") + 5;
-        var parentDirPos = jsonString.indexOf("parentDir") + 12;
+        var parentOutDir = output.split("/");
+
+        if (parentOutDir[0] == ".")
+          parentOutDir = parentOutDir[1];
+        else
+          parentOutDir = parentOutDir[0];
 
         var fileName = jsonString.substring(idPos, jsonString.indexOf('"', idPos));
-        var parentDir =  jsonString.substring(parentDirPos, jsonString.indexOf('"', parentDirPos));
 
         var html = n.toHTML(opts);
 
@@ -221,11 +223,11 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
           fileName = fileName.replace(scoreToDot, ".");
         }
 
-        makeDirIfNeeded(output + "/" + parentDir);
+        makeDirIfNeeded(output, "0777");
+        
+        copyDirSync(Util.join(opts.skin, 'skeleton'), parentOutDir + "/resources");
 
-        copyDirSync(Util.join(opts.skin, 'skeleton'), output + "/resources");
-
-        Util.write(Util.join(output, parentDir + "/" + fileName.toLowerCase() + '.html'), html);
+        Util.write(Util.join(output, fileName.toLowerCase() + '.html'), html);
       });
     break;
 
