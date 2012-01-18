@@ -206,12 +206,7 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
       ndocArray.forEach(function (n) {
         var jsonString = JSON.stringify(n.list);
         var idPos = jsonString.indexOf("id") + 5;
-        var parentOutDir = output.split("/");
-
-        if (parentOutDir[0] == ".")
-          parentOutDir = parentOutDir[1];
-        else
-          parentOutDir = parentOutDir[0];
+        var parentOutDir = output.split("/")[1] + "/" + output.split("/")[2];
 
         var fileName = jsonString.substring(idPos, jsonString.indexOf('"', idPos));
 
