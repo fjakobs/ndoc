@@ -222,7 +222,7 @@ Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat
         
         copyDirSync(Util.join(opts.skin, 'skeleton'), parentOutDir + "/resources");
 
-        Util.write(Util.join(output, fileName.toLowerCase() + '.html'), html);
+        Util.write(Util.join(output, fileName + '.html'), html);
       });
     break;
 
