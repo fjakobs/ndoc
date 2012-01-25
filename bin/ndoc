@@ -1,244 +1,248 @@
 #!/usr/bin/env node
 'use strict';
 
-var exec = require('child_process').exec;
 var Util = require('../lib/util');
 var NDoc = require('../lib');
 var fs = require('fs')
 
-//
-// parse options
-//
-var opts = require('nomnom')
-  .option('path', {
-    position: 0,
-    list: true,
-    required: true,
-    help: 'Source files location',
-    metavar: 'PATH',
-  })
-  .option('extension', {
-    abbr: 'e',
-    help: 'Source files extension [js]',
-    metavar: 'STRING',
-    default: 'js',
-  })
-  .option('output', {
-    abbr: 'o',
-    help: 'Resulting file(s) location [doc]',
-    metavar: 'PATH',
-    default: 'doc',
-  })
-  .option('format', {
-    abbr: 'f',
-    help: 'Documentation format [html]',
-    choices: ['html', 'json', 'js'],
-    metavar: 'FMT',
-    default: 'html',
-  })
-  .option('index', {
-    abbr: 'i',
-    help: 'Index file [README.md]',
-    metavar: 'FILE',
-    default: 'README.md',
-  })
-  .option('title', {
-    full: 'title',
-    abbr: 't',
-    help: 'Documentation title. If omitted, it will be guessed from manifest, if any',
-    default: '{package.name} {package.version} API documentation',
-    metavar: 'STRING',
-  })
-  .option('linkFormat', {
-    abbr: 'l',
-    full: 'link-format',
-    help: 'Format for link to source file [{file}#L{line}]',
-    //default: '../{file}#L{line}',
-    metavar: 'FMT',
-  })
-  .option('skin', {
-    help: 'Custom templates [' + __dirname + '/../skins/default' + ']',
-    default: Util.join(__dirname, '..', 'skins', 'default'),
-    metavar: 'PATH',
-  })
-  .option('viewSourceLabel', {
-    full: 'view-source-label',
-    help: 'Text for "View source" link',
-    default: 'View source code',
-    metavar: 'STRING',
-  })
-  .option('brokenLinks', {
-    abbr: 'b',
-    full: 'broken-links',
-    help: 'What to do if broken link occured [hide]',
-    choices: ['show', 'hide', 'throw'],
-    metavar: 'ACTION',
-  })
-  .parse();
+if (!module.parent)
+    exports.main(process.argv.slice(2));
 
-//
-// read manifest from file
-//
-var manifest = {};
-try {
-  manifest = JSON.parse(Util.read('package.json'));
-} catch (err1) {
-}
-
-//
-// flatten manifest structure, to allow easier access
-//
-(function () {
-  var options = {};
-  function flatten(o, path) {
-    var i, p;
-    for (i in o) {
-      if (o.hasOwnProperty(i)) {
-        p = path ? path + '.' + i : i;
-        options[p] = o[i];
-        if (o[i] && typeof o[i] === 'object') {
-          flatten(o[i], p);
+exports.main = function(args) {
+    //
+    // parse options
+    //
+    var opts = require('nomnom')
+      .option('path', {
+        position: 0,
+        list: true,
+        required: true,
+        help: 'Source files location',
+        metavar: 'PATH',
+      })
+      .option('extension', {
+        abbr: 'e',
+        help: 'Source files extension [js]',
+        metavar: 'STRING',
+        default: 'js',
+      })
+      .option('output', {
+        abbr: 'o',
+        help: 'Resulting file(s) location [doc]',
+        metavar: 'PATH',
+        default: 'doc',
+      })
+      .option('format', {
+        abbr: 'f',
+        help: 'Documentation format [html]',
+        choices: ['html', 'json', 'js'],
+        metavar: 'FMT',
+        default: 'html',
+      })
+      .option('index', {
+        abbr: 'i',
+        help: 'Index file [README.md]',
+        metavar: 'FILE',
+        default: 'README.md',
+      })
+      .option('title', {
+        full: 'title',
+        abbr: 't',
+        help: 'Documentation title. If omitted, it will be guessed from manifest, if any',
+        default: '{package.name} {package.version} API documentation',
+        metavar: 'STRING',
+      })
+      .option('linkFormat', {
+        abbr: 'l',
+        full: 'link-format',
+        help: 'Format for link to source file [{file}#L{line}]',
+        //default: '../{file}#L{line}',
+        metavar: 'FMT',
+      })
+      .option('skin', {
+        help: 'Custom templates [' + __dirname + '/../skins/default' + ']',
+        default: Util.join(__dirname, '..', 'skins', 'default'),
+        metavar: 'PATH',
+      })
+      .option('viewSourceLabel', {
+        full: 'view-source-label',
+        help: 'Text for "View source" link',
+        default: 'View source code',
+        metavar: 'STRING',
+      })
+      .option('brokenLinks', {
+        abbr: 'b',
+        full: 'broken-links',
+        help: 'What to do if broken link occured [hide]',
+        choices: ['show', 'hide', 'throw'],
+        metavar: 'ACTION',
+      })
+      .parse();
+    
+    //
+    // read manifest from file
+    //
+    var manifest = {};
+    try {
+      manifest = JSON.parse(Util.read('package.json'));
+    } catch (err1) {
+    }
+    
+    //
+    // flatten manifest structure, to allow easier access
+    //
+    (function () {
+      var options = {};
+      function flatten(o, path) {
+        var i, p;
+        for (i in o) {
+          if (o.hasOwnProperty(i)) {
+            p = path ? path + '.' + i : i;
+            options[p] = o[i];
+            if (o[i] && typeof o[i] === 'object') {
+              flatten(o[i], p);
+            }
+          }
         }
       }
+      flatten(manifest);
+      manifest = options;
+    }());
+    
+    function interpolate(string, file, line) {
+      var r = string
+        .replace(/\{url\}/g, opts.package.url || '')
+        .replace(/\{file\}/g, file)
+        .replace(/\{line\}/g, line)
+        .replace(/\{package\.([^}]+)\}/g, function (all, path) { return opts.package[path]; });
+      return r;
     }
-  }
-  flatten(manifest);
-  manifest = options;
-}());
-
-function interpolate(string, file, line) {
-  var r = string
-    .replace(/\{url\}/g, opts.package.url || '')
-    .replace(/\{file\}/g, file)
-    .replace(/\{line\}/g, line)
-    .replace(/\{package\.([^}]+)\}/g, function (all, path) { return opts.package[path]; });
-  return r;
-}
-
-// try to collect critical variables
-opts.package = manifest;
-opts.package.name = opts.package.name || '';
-opts.package.version = opts.package.version || '';
-opts.package.url = opts.package['repository.url'] || opts.package.repository || '';
-opts.package.url = opts.package.url.replace(/^git:\/\//, 'https://').replace(/\.git$/, '');
-// FIXME: guesswork: valid package.json means github.com link format
-if (!opts.linkFormat) {
-  if (opts.package.url.match(/\/\/github\.com\//)) {
-    opts.linkFormat = '{url}/blob/master/{file}#L{line}';
-  }
-}
-// guess title?
-if (!opts.title) {
-  opts.title = (opts.package.name + ' ' + opts.package.version + ' API documentation').trim();
-// or interpolate title
-} else {
-  opts.title = interpolate(opts.title);
-}
-
-//console.log(opts);
-
-//
-// read index file
-//
-try {
-  opts.index = Util.read(opts.index);
-} catch (err2) {
-  opts.index = '';
-}
-
-//console.error(opts); process.exit(0);
-
-//
-// collect sources
-//
-var files = [];
-Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat, cb) {
-  //console.log('Processing', filename);
-  files.push(filename);
-  cb();
-}, function (err) {
-  var ndoc, ndocArray = [], output;
-  if (err) {
-    console.error(err.message || err);
-    process.exit(1);
-  }
-
-// build trees
-  if (opts.format == 'html') {
-    for (var f = 0; f < files.length; f++) { 
-    var f_a = new Array(1);
-    f_a[0] = files[f];
-    ndocArray.push(new NDoc(f_a, {
-      // given package URL, file name and line in the file, format link to source file.
-      // do so only if `packageUrl` is set or `linkFormat` is set
-      formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
-        //return Util.normalize(interpolate(opts.linkFormat, file, line));
-        return interpolate(opts.linkFormat, file, line);
+    
+    // try to collect critical variables
+    opts.package = manifest;
+    opts.package.name = opts.package.name || '';
+    opts.package.version = opts.package.version || '';
+    opts.package.url = opts.package['repository.url'] || opts.package.repository || '';
+    opts.package.url = opts.package.url.replace(/^git:\/\//, 'https://').replace(/\.git$/, '');
+    // FIXME: guesswork: valid package.json means github.com link format
+    if (!opts.linkFormat) {
+      if (opts.package.url.match(/\/\/github\.com\//)) {
+        opts.linkFormat = '{url}/blob/master/{file}#L{line}';
       }
-    }))
-    };
     }
-    else {
-    ndoc = new NDoc(files, {
-      // given package URL, file name and line in the file, format link to source file.
-      // do so only if `packageUrl` is set or `linkFormat` is set
-      formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
-        //return Util.normalize(interpolate(opts.linkFormat, file, line));
-        return interpolate(opts.linkFormat, file, line);
+    // guess title?
+    if (!opts.title) {
+      opts.title = (opts.package.name + ' ' + opts.package.version + ' API documentation').trim();
+    // or interpolate title
+    } else {
+      opts.title = interpolate(opts.title);
+    }
+    
+    //console.log(opts);
+    
+    //
+    // read index file
+    //
+    try {
+      opts.index = Util.read(opts.index);
+    } catch (err2) {
+      opts.index = '';
+    }
+    
+    //console.error(opts); process.exit(0);
+    
+    //
+    // collect sources
+    //
+    var files = [];
+    Util.walk_many(opts.path, '\\.' + opts.extension + '$', function (filename, stat, cb) {
+      //console.log('Processing', filename);
+      files.push(filename);
+      cb();
+    }, function (err) {
+      var ndoc, ndocArray = [], output;
+      if (err) {
+        console.error(err.message || err);
+        process.exit(1);
+      }
+    
+    // build trees
+      if (opts.format == 'html') {
+        for (var f = 0; f < files.length; f++) { 
+        var f_a = new Array(1);
+        f_a[0] = files[f];
+        ndocArray.push(new NDoc(f_a, {
+          // given package URL, file name and line in the file, format link to source file.
+          // do so only if `packageUrl` is set or `linkFormat` is set
+          formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
+            //return Util.normalize(interpolate(opts.linkFormat, file, line));
+            return interpolate(opts.linkFormat, file, line);
+          }
+        }))
+        };
+        }
+        else {
+        ndoc = new NDoc(files, {
+          // given package URL, file name and line in the file, format link to source file.
+          // do so only if `packageUrl` is set or `linkFormat` is set
+          formatLink: (opts.linkFormat || opts.package.url) && function (file, line) {
+            //return Util.normalize(interpolate(opts.linkFormat, file, line));
+            return interpolate(opts.linkFormat, file, line);
+          }
+        });
+     }
+      //console.log(ndoc.toJSON());
+    
+      // output tree
+      output = opts.output;
+    
+      if (require('path').existsSync(output))
+        rmdirSyncRecursive(output);
+    
+      switch (opts.format) {
+    
+      case 'json':
+        Util.write(output, ndoc.toJSON(opts));
+        break;
+    
+      case 'js':
+        Util.write(output, 'var ndoc = ' + ndoc.toJSON(opts) + ';');
+        break;
+    
+        case 'html':
+          ndocArray.forEach(function (n) {
+            var jsonString = JSON.stringify(n.list);
+    
+            var filenamePos = jsonString.indexOf('"filename":') + 12;
+            var fileName = jsonString.substring(filenamePos, jsonString.indexOf('"', filenamePos));
+    
+            fileName = fileName.substring(0, fileName.lastIndexOf("."));
+    
+            var parentOutDir = output.split("/")[1] + "/" + output.split("/")[2];
+    
+            var html = n.toHTML(opts);
+    
+            if (fileName.indexOf("_") >=0)
+            {
+              var scoreToDot = new RegExp(/_/g);
+              fileName = fileName.replace(scoreToDot, ".");
+            }
+    
+            makeDirIfNeeded(output, "0777");
+            
+            copyDirSync(Util.join(opts.skin, 'skeleton'), parentOutDir + "/resources");
+    
+            Util.write(Util.join(output, fileName + '.html'), html);
+          });
+        break;
+    
+      default:
+        console.error(opts.format + ': not supported');
+        process.exit(1);
+    
       }
     });
- }
-  //console.log(ndoc.toJSON());
-
-  // output tree
-  output = opts.output;
-
-  if (require('path').existsSync(output))
-    rmdirSyncRecursive(output);
-
-  switch (opts.format) {
-
-  case 'json':
-    Util.write(output, ndoc.toJSON(opts));
-    break;
-
-  case 'js':
-    Util.write(output, 'var ndoc = ' + ndoc.toJSON(opts) + ';');
-    break;
-
-    case 'html':
-      ndocArray.forEach(function (n) {
-        var jsonString = JSON.stringify(n.list);
-
-        var filenamePos = jsonString.indexOf('"filename":') + 12;
-        var fileName = jsonString.substring(filenamePos, jsonString.indexOf('"', filenamePos));
-
-        fileName = fileName.substring(0, fileName.lastIndexOf("."));
-
-        var parentOutDir = output.split("/")[1] + "/" + output.split("/")[2];
-
-        var html = n.toHTML(opts);
-
-        if (fileName.indexOf("_") >=0)
-        {
-          var scoreToDot = new RegExp(/_/g);
-          fileName = fileName.replace(scoreToDot, ".");
-        }
-
-        makeDirIfNeeded(output, "0777");
-        
-        copyDirSync(Util.join(opts.skin, 'skeleton'), parentOutDir + "/resources");
-
-        Util.write(Util.join(output, fileName + '.html'), html);
-      });
-    break;
-
-  default:
-    console.error(opts.format + ': not supported');
-    process.exit(1);
-
-  }
-});
+}
 
 // Borrowed from wrench
 // https://github.com/ryanmcgrath/wrench-js/blob/master/lib/wrench.js#L53
