@@ -3,12 +3,19 @@
 
 var Util = require('../lib/util');
 var NDoc = require('../lib');
-var fs = require('fs')
+var fs = require('fs');
 
-if (!module.parent)
-    exports.main(process.argv.slice(2));
+if (!module.parent) {
+    exports.main(process.argv.slice(2), function(err) {
+        if (err) {
+            console.error(err);
+            process.exit(1);
+        }
+        process.exit(0);
+    });
+}
 
-exports.main = function(args) {
+exports.main = function(args, callback) {
     //
     // parse options
     //
@@ -77,7 +84,7 @@ exports.main = function(args) {
         choices: ['show', 'hide', 'throw'],
         metavar: 'ACTION',
       })
-      .parse();
+      .parse(args);
     
     //
     // read manifest from file
@@ -162,8 +169,7 @@ exports.main = function(args) {
     }, function (err) {
       var ndoc, ndocArray = [], output;
       if (err) {
-        console.error(err.message || err);
-        process.exit(1);
+        return callback(err.message || err);
       }
     
     // build trees
@@ -237,10 +243,11 @@ exports.main = function(args) {
         break;
     
       default:
-        console.error(opts.format + ': not supported');
-        process.exit(1);
+        return callback(opts.format + ': not supported');
     
       }
+      
+      callback();
     });
 }
 
